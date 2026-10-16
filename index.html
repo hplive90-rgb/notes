@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>یادداشت‌های من</title>
+
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="یادداشت‌ها">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="یادداشت‌ها">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23f59e0b'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle'%3E%F0%9F%93%9D%3C/text%3E%3C/svg%3E">
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;padding:0;background:#f5f5f7;color:#1c1c1e;font-family:Tahoma,Arial,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+header{background:#f59e0b;color:white;padding:14px 15px calc(14px + env(safe-area-inset-top));position:sticky;top:0;z-index:100;box-shadow:0 2px 8px #0001}
+header .top{display:flex;align-items:center;gap:8px}
+header h1{font-size:17px;margin:0;flex:1}
+header .ver{font-size:11px;color:#fff5e0;margin-top:2px}
+header .icon-btn{background:#ffffff22;color:white;border:0;width:38px;height:38px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+header .icon-btn:active{background:#ffffff33}
+main{max-width:760px;margin:auto;padding:12px}
+
+.controls{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.controls input[type="search"],.controls select{flex:1;min-width:120px;padding:10px;border:1px solid #d1d5db;border-radius:10px;font:inherit;background:white}
+.controls input:focus,.controls select:focus{outline:2px solid #fcd34d}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.stat{background:white;border-radius:11px;padding:9px 4px;text-align:center;border:1px solid #e5e7eb}
+.stat small{display:block;color:#6b7280;font-size:11px;margin-bottom:4px}
+.stat strong{font-size:14px;color:#111827}
+
+.view-toggle{display:flex;gap:4px;background:#e5e7eb;padding:3px;border-radius:9px}
+.view-toggle button{flex:1;padding:7px;border:0;border-radius:7px;background:transparent;font:inherit;cursor:pointer;font-size:12px;color:#374151}
+.view-toggle button.active{background:white;font-weight:bold;box-shadow:0 1px 3px #0001}
+
+.notes{display:grid;gap:10px}
+.notes.grid{grid-template-columns:1fr 1fr}
+.note{background:white;border-radius:13px;padding:12px;border:1px solid #e5e7eb;position:relative;cursor:pointer;transition:transform .12s,box-shadow .15s}
+.note:active{transform:scale(.98)}
+.note.pinned{border-color:#fbbf24;box-shadow:0 0 0 2px #fef3c7}
+.note .note-head{display:flex;align-items:flex-start;gap:6px;margin-bottom:6px}
+.note .note-title{font-weight:bold;font-size:14px;flex:1;word-break:break-word;color:#111827}
+.note.pinned .note-title::before{content:"⭐ ";font-size:12px}
+.note .note-body{font-size:12.5px;color:#4b5563;line-height:1.6;max-height:96px;overflow:hidden;text-overflow:ellipsis;word-break:break-word;white-space:pre-wrap}
+.note .note-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:11px;color:#9ca3af}
+.note .cat-tag{background:#e0f2fe;color:#075985;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:bold}
+.note .note-actions{position:absolute;top:8px;left:8px;display:flex;gap:3px;opacity:0;transition:opacity .15s}
+.note:hover .note-actions,.note.menu-open .note-actions{opacity:1}
+.note .mini-btn{background:#f3f4f6;border:0;width:28px;height:28px;border-radius:7px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.note .mini-btn.danger{color:#dc2626}
+.note .lock-badge{position:absolute;top:8px;right:8px;font-size:14px}
+
+.empty{text-align:center;color:#9ca3af;padding:40px 20px;font-size:14px}
+.empty .big{font-size:40px;display:block;margin-bottom:8px}
+
+/* ویرایشگر */
+.editor-panel{position:fixed;inset:0;background:#f5f5f7;z-index:200;display:none;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+.editor-panel.open{display:flex}
+.editor-header{background:white;padding:12px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #e5e7eb;padding-top:calc(12px + env(safe-area-inset-top))}
+.editor-header h2{font-size:15px;margin:0;flex:1}
+.editor-header button{background:#f3f4f6;border:0;border-radius:9px;padding:9px 13px;font:inherit;cursor:pointer;color:#374151;font-size:13px}
+.editor-header button.primary{background:#f59e0b;color:white;font-weight:bold}
+.editor-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.editor-body input,.editor-body textarea,.editor-body select{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:10px;font:inherit;background:white;color:#111827}
+.editor-body input:focus,.editor-body textarea:focus,.editor-body select:focus{outline:2px solid #fcd34d}
+.editor-body textarea{flex:1;min-height:260px;resize:vertical;line-height:1.7;font-size:14px;font-family:inherit}
+.editor-meta{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.editor-label{font-size:12px;color:#6b7280;margin-bottom:5px;display:block}
+.pin-row{display:flex;gap:8px;align-items:center;padding:10px;background:white;border-radius:10px;border:1px solid #e5e7eb}
+.pin-row label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;flex:1}
+.pin-row input[type="checkbox"]{width:auto;margin:0}
+
+/* مودال */
+.modal-bg{position:fixed;inset:0;background:#0006;z-index:300;display:none;align-items:center;justify-content:center;padding:15px}
+.modal-bg.open{display:flex}
+.modal{background:white;border-radius:15px;padding:16px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto}
+.modal h3{margin:0 0 12px;font-size:15px}
+.modal .row{display:flex;gap:8px;margin-top:12px}
+.modal .row button{flex:1;padding:11px;border-radius:10px;border:0;font:inherit;cursor:pointer}
+.modal .row .cancel{background:#f3f4f6;color:#374151}
+.modal .row .confirm{background:#f59e0b;color:white;font-weight:bold}
+.modal .row .danger{background:#dc2626;color:white;font-weight:bold}
+.cat-list{margin-top:8px}
+.cat-item{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f9fafb;border-radius:9px;margin-bottom:5px;font-size:13px}
+.cat-item button{background:transparent;border:0;color:#dc2626;cursor:pointer;font-size:15px;padding:3px}
+
+/* بنر نصب */
+.install-banner{position:fixed;bottom:0;left:0;right:0;background:white;padding:12px;box-shadow:0 -4px 15px #0002;display:none;z-index:150;border-radius:14px 14px 0 0;max-width:760px;margin:0 auto}
+.install-banner.show{display:block;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.install-banner-content{display:flex;gap:10px;align-items:center}
+.install-banner-icon{width:48px;height:48px;border-radius:11px;flex-shrink:0;background:#f59e0b;display:flex;align-items:center;justify-content:center;font-size:26px}
+.install-banner-text{flex:1;min-width:0}
+.install-banner-text strong{display:block;font-size:14px;margin-bottom:2px}
+.install-banner-text small{color:#6b7280;font-size:12px;line-height:1.4}
+.install-banner .actions{display:flex;gap:7px;margin-top:10px}
+.install-banner .actions button{flex:1;padding:9px;border:0;border-radius:9px;font:inherit;cursor:pointer;font-size:13px}
+.install-banner .actions .primary{background:#f59e0b;color:white;font-weight:bold}
+.install-banner .actions .secondary{background:#f3f4f6;color:#374151}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2937;color:white;padding:11px 18px;border-radius:9px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:400;max-width:90%}
+.toast.show{opacity:1}
+
+.pwa-status{font-size:11px;padding:4px 8px;border-radius:6px;background:#d1fae5;color:#065f46;display:inline-block}
+.pwa-status.warn{background:#fef3c7;color:#92400e}
+.pwa-status.err{background:#fee2e2;color:#991b1b}
+
+.settings-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.settings-row button{padding:10px 13px;border:1px solid #d1d5db;border-radius:9px;background:white;font:inherit;cursor:pointer;font-size:12.5px;color:#374151}
+.settings-row button.primary{background:#f59e0b;color:white;border-color:#f59e0b;font-weight:bold}
+hr{border:0;border-top:1px solid #e5e7eb;margin:14px 0}
+
+@media print{
+  body *{visibility:hidden}
+  .print-area,.print-area *{visibility:visible}
+  .print-area{position:absolute;top:0;right:0;left:0;padding:20px;background:white}
+  .print-note{page-break-after:always;padding:20px 0;border-bottom:1px dashed #ccc}
+  .print-note:last-child{page-break-after:auto;border:0}
+  .print-note h2{margin:0 0 8px;font-size:18px;color:#000}
+  .print-note .meta{font-size:11px;color:#666;margin-bottom:10px}
+  .print-note .content{white-space:pre-wrap;line-height:1.8;font-size:13px;color:#000}
+}
+
+@media(max-width:380px){
+  .notes.grid{grid-template-columns:1fr}
+  .editor-meta{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>📝 یادداشت‌های من</h1>
+    <button class="icon-btn" onclick="openSettings()" title="تنظیمات">⚙️</button>
+    <button class="icon-btn" onclick="newNote()" title="یادداشت جدید">＋</button>
+  </div>
+  <div class="ver" id="versionLabel">نسخه ۱.۰</div>
+</header>
+
+<main>
+  <div class="stats">
+    <div class="stat"><small>تعداد</small><strong id="noteCount">۰</strong></div>
+    <div class="stat"><small>ستاره‌دار</small><strong id="pinnedCount">۰</strong></div>
+    <div class="stat"><small>دسته‌ها</small><strong id="catCount">۰</strong></div>
+  </div>
+
+  <div class="controls">
+    <input type="search" id="searchInput" placeholder="🔎 جست‌وجو در عنوان و متن..." oninput="render()">
+    <select id="catFilter" onchange="render()">
+      <option value="">همه دسته‌ها</option>
+    </select>
+    <select id="sortBy" onchange="render()">
+      <option value="date">جدیدترین</option>
+      <option value="oldest">قدیمی‌ترین</option>
+      <option value="title">عنوان (الفبا)</option>
+      <option value="pinned">ستاره‌دار اول</option>
+    </select>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <div class="view-toggle" style="flex:1">
+      <button class="active" onclick="setView('list')" id="viewList">☰ لیست</button>
+      <button onclick="setView('grid')" id="viewGrid">▦ کارتی</button>
+    </div>
+  </div>
+
+  <div id="notesContainer" class="notes"></div>
+</main>
+
+<!-- ویرایشگر -->
+<div class="editor-panel" id="editorPanel">
+  <div class="editor-header">
+    <button onclick="closeEditor()">✕ بستن</button>
+    <h2 id="editorTitle">یادداشت جدید</h2>
+    <button class="primary" onclick="saveNote()">💾 ذخیره</button>
+  </div>
+  <div class="editor-body">
+    <div>
+      <label class="editor-label">عنوان</label>
+      <input id="nTitle" placeholder="عنوان یادداشت...">
+    </div>
+    <div>
+      <label class="editor-label">متن</label>
+      <textarea id="nBody" placeholder="متن یادداشت خود را اینجا بنویسید..."></textarea>
+    </div>
+    <div class="editor-meta">
+      <div>
+        <label class="editor-label">دسته‌بندی</label>
+        <select id="nCat"></select>
+      </div>
+      <div>
+        <label class="editor-label">رنگ</label>
+        <select id="nColor">
+          <option value="white">سفید</option>
+          <option value="yellow">زرد</option>
+          <option value="green">سبز</option>
+          <option value="blue">آبی</option>
+          <option value="pink">صورتی</option>
+          <option value="purple">بنفش</option>
+        </select>
+      </div>
+    </div>
+    <div class="pin-row">
+      <label><input type="checkbox" id="nPinned"> ستاره‌دار (بالای لیست)</label>
+    </div>
+  </div>
+</div>
+
+<!-- تنظیمات -->
+<div class="modal-bg" id="settingsModal">
+  <div class="modal">
+    <h3>⚙️ تنظیمات و پشتیبان</h3>
+
+    <h4 style="margin:0 0 8px;font-size:13px">دسته‌بندی‌ها</h4>
+    <div id="catManager" class="cat-list"></div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <input id="newCatInput" placeholder="دسته جدید..." style="flex:1;padding:9px;border:1px solid #d1d5db;border-radius:9px;font:inherit">
+      <button onclick="addCategory()" style="padding:9px 14px;border:0;border-radius:9px;background:#f59e0b;color:white;font-weight:bold;cursor:pointer">افزودن</button>
+    </div>
+
+    <hr>
+    <h4 style="margin:0 0 8px;font-size:13px">خروجی و ورودی</h4>
+    <div class="settings-row">
+      <button class="primary" onclick="exportExcel()">📊 خروجی Excel</button>
+      <button onclick="document.getElementById('excelIn').click()">📥 ورود از Excel</button>
+      <button onclick="exportJSON()">💾 پشتیبان JSON</button>
+      <button onclick="document.getElementById('jsonIn').click()">♻️ بازیابی JSON</button>
+      <button onclick="printAll()">🖨 پرینت همه</button>
+    </div>
+    <input id="excelIn" type="file" accept=".xlsx,.xls,.csv" hidden onchange="importExcel(event)">
+    <input id="jsonIn" type="file" accept=".json" hidden onchange="importJSON(event)">
+
+    <hr>
+    <h4 style="margin:0 0 8px;font-size:13px">نصب</h4>
+    <div class="settings-row">
+      <button onclick="tryInstall()">📲 نصب خودکار</button>
+      <button onclick="showInstallBanner()">راهنمای نصب</button>
+    </div>
+    <p style="font-size:12px;color:#6b7280;line-height:1.7;margin:10px 0 0">وضعیت PWA: <span id="pwaStatus" class="pwa-status">در حال بررسی...</span></p>
+
+    <hr>
+    <h4 style="margin:0 0 8px;font-size:13px">درباره</h4>
+    <p style="font-size:12px;color:#6b7280;line-height:1.7;margin:0">
+      <b>یادداشت‌های من</b> — <span id="aboutVersion">نسخه ۱.۰</span><br>
+      اطلاعات در حافظه‌ی مرورگر همین دستگاه ذخیره می‌شود.
+    </p>
+
+    <div class="row">
+      <button class="cancel" onclick="closeSettings()">بستن</button>
+    </div>
+  </div>
+</div>
+
+<!-- تأیید حذف -->
+<div class="modal-bg" id="confirmModal">
+  <div class="modal">
+    <h3 id="confirmTitle">تأیید</h3>
+    <p id="confirmMsg" style="font-size:13px;color:#4b5563;margin:0 0 8px"></p>
+    <div class="row">
+      <button class="cancel" onclick="closeConfirm()">لغو</button>
+      <button class="confirm danger" id="confirmOkBtn">حذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- پرینت -->
+<div id="printArea" class="print-area hidden"></div>
+
+<!-- بنر نصب -->
+<div class="install-banner" id="installBanner">
+  <div class="install-banner-content">
+    <div class="install-banner-icon">📝</div>
+    <div class="install-banner-text">
+      <strong>یادداشت‌ها رو نصب کن</strong>
+      <small id="installBannerText">برای دسترسی سریع، به صفحه‌ی هوم اضافه کن</small>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="primary" onclick="tryInstall()" id="installBtn">نصب</button>
+    <button class="secondary" onclick="dismissInstall()">بعداً</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   نسخه
+   ========================================================= */
+const APP_VERSION = "۱.۰";
+
+/* =========================================================
+   Manifest درون‌خطی
+   ========================================================= */
+(function injectManifest(){
+  const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#f59e0b"/><text x="256" y="360" font-size="300" text-anchor="middle" font-family="Arial">📝</text></svg>`;
+  const iconUrl = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(iconSvg)));
+  const manifest = {
+    name: "یادداشت‌های من",
+    short_name: "یادداشت‌ها",
+    description: "یادداشت‌برداری ساده با دسته‌بندی و جست‌وجو",
+    start_url: ".",
+    scope: ".",
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#f5f5f7",
+    theme_color: "#f59e0b",
+    dir: "rtl",
+    lang: "fa",
+    icons: [
+      { src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any" },
+      { src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"});
+  const link = document.createElement("link");
+  link.rel = "manifest";
+  link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+})();
+
+/* =========================================================
+   Service Worker
+   ========================================================= */
+(function registerSW(){
+  if(!("serviceWorker" in navigator)) return;
+  if(location.protocol !== "https:" && location.hostname !== "localhost") return;
+  const swCode = `
+    self.addEventListener('install', e => { self.skipWaiting(); });
+    self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+    self.addEventListener('fetch', e => {
+      e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    });
+  `;
+  const blob = new Blob([swCode], {type:"text/javascript"});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(e=>console.warn(e));
+})();
+
+/* =========================================================
+   PWA Install
+   ========================================================= */
+let deferredPrompt = null;
+const INSTALL_DISMISS_KEY = "notes_install_dismissed";
+
+window.addEventListener("beforeinstallprompt", (e)=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  const s = el("pwaStatus"); if(s){ s.textContent = "✅ آماده‌ی نصب"; s.className = "pwa-status"; }
+  if(!localStorage.getItem(INSTALL_DISMISS_KEY)) showInstallBanner();
+});
+window.addEventListener("appinstalled", ()=>{
+  toast("✅ نصب شد!");
+  dismissInstall();
+  deferredPrompt = null;
+});
+function showInstallBanner(){
+  el("installBanner").classList.add("show");
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if(isIOS && !deferredPrompt){
+    el("installBannerText").textContent = "در Safari: Share ← Add to Home Screen";
+    el("installBtn").style.display = "none";
+  }else if(!deferredPrompt){
+    el("installBannerText").textContent = "از منوی مرورگر گزینه‌ی Install app رو بزن";
+    el("installBtn").style.display = "none";
+  }else{
+    el("installBtn").style.display = "";
+  }
+}
+function dismissInstall(){
+  el("installBanner").classList.remove("show");
+  try{ localStorage.setItem(INSTALL_DISMISS_KEY, "1"); }catch(e){}
+}
+async function tryInstall(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    toast(outcome === "accepted" ? "✅ نصب شد" : "نصب لغو شد");
+    deferredPrompt = null;
+    dismissInstall();
+  }else{
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS) alert("در Safari:\n۱. Share را بزن\n۲. Add to Home Screen\n۳. Add");
+    else if(location.protocol !== "https:" && location.hostname !== "localhost")
+      alert("⚠️ برای نصب، صفحه باید از HTTPS باز شود.");
+    else
+      alert("از منوی مرورگر → Install app یا Add to Home Screen");
+  }
+}
+
+/* =========================================================
+   داده
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const el = id => document.getElementById(id);
+const KEY = "my_notes_v1";
+const CATS_KEY = "my_notes_cats_v1";
+
+let notes = [];
+let categories = ["عمومی","کار","شخصی","ایده"];
+let currentView = "list";
+
+/* رنگ‌های یادداشت */
+const COLORS = {
+  white:  {bg:"#ffffff", border:"#e5e7eb"},
+  yellow: {bg:"#fef9c3", border:"#fde047"},
+  green:  {bg:"#dcfce7", border:"#86efac"},
+  blue:   {bg:"#dbeafe", border:"#93c5fd"},
+  pink:   {bg:"#fce7f3", border:"#f9a8d4"},
+  purple: {bg:"#ede9fe", border:"#c4b5fd"}
+};
+
+/* =========================================================
+   ابزارها
+   ========================================================= */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const PERSIAN_DIGITS = ["۰","۱","۲","۳","۴","۵","۶","۷","۸","۹"];
+function toFa(n){ return String(n).replace(/\d/g, d=>PERSIAN_DIGITS[+d]); }
+
+function formatDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('fa-IR') + " - " + d.toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function toast(msg, ms){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._tid);
+  t._tid = setTimeout(()=>t.classList.remove("show"), ms||2200);
+}
+
+/* =========================================================
+   ذخیره‌سازی
+   ========================================================= */
+function saveAll(){
+  try{
+    localStorage.setItem(KEY, JSON.stringify(notes));
+    localStorage.setItem(CATS_KEY, JSON.stringify(categories));
+    return true;
+  }catch(e){
+    toast("⚠️ ذخیره نشد!");
+    return false;
+  }
+}
+function loadAll(){
+  try{
+    const n = JSON.parse(localStorage.getItem(KEY));
+    if(Array.isArray(n)) notes = n;
+  }catch(e){ notes = []; }
+  try{
+    const c = JSON.parse(localStorage.getItem(CATS_KEY));
+    if(Array.isArray(c) && c.length) categories = c;
+  }catch(e){}
+  // اطمینان از یکدستی
+  notes = notes.map(n=>({
+    id: n.id || uid(),
+    title: String(n.title||""),
+    body: String(n.body||""),
+    cat: n.cat || "عمومی",
+    color: n.color || "white",
+    pinned: !!n.pinned,
+    created: n.created || Date.now(),
+    updated: n.updated || n.created || Date.now()
+  }));
+}
+
+/* =========================================================
+   رندر
+   ========================================================= */
+function render(){
+  const q = (el("searchInput")?.value || "").trim().toLowerCase();
+  const catF = el("catFilter")?.value || "";
+  const sort = el("sortBy")?.value || "date";
+
+  // فیلتر
+  let list = notes.filter(n=>{
+    if(catF && n.cat !== catF) return false;
+    if(!q) return true;
+    return (n.title||"").toLowerCase().includes(q) || (n.body||"").toLowerCase().includes(q);
+  });
+
+  // مرتب‌سازی
+  if(sort === "date")      list.sort((a,b)=>b.updated - a.updated);
+  else if(sort === "oldest") list.sort((a,b)=>a.updated - b.updated);
+  else if(sort === "title")  list.sort((a,b)=>String(a.title).localeCompare(String(b.title),'fa'));
+  else if(sort === "pinned") list.sort((a,b)=>{
+    if(a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return b.updated - a.updated;
+  });
+  else list.sort((a,b)=>b.updated - a.updated);
+
+  // آمار
+  el("noteCount").textContent = toFa(notes.length);
+  el("pinnedCount").textContent = toFa(notes.filter(n=>n.pinned).length);
+  el("catCount").textContent = toFa(categories.length);
+
+  // رندر
+  const cont = el("notesContainer");
+  cont.className = "notes " + (currentView === "grid" ? "grid" : "");
+
+  if(!list.length){
+    cont.innerHTML = q
+      ? '<div class="empty" style="grid-column:1/-1"><span class="big">🔍</span>چیزی با این جست‌وجو پیدا نشد.</div>'
+      : '<div class="empty" style="grid-column:1/-1"><span class="big">📝</span>هنوز یادداشتی نداری.<br>روی دکمه‌ی + بالا بزن تا شروع کنی.</div>';
+    return;
+  }
+
+  cont.innerHTML = list.map(n=>{
+    const c = COLORS[n.color] || COLORS.white;
+    const preview = (n.body||"").slice(0,160) + ((n.body||"").length > 160 ? "…" : "");
+    return `
+    <div class="note ${n.pinned?'pinned':''}" style="background:${c.bg};border-color:${c.border}" onclick="openNote('${n.id}')">
+      <div class="note-actions" onclick="event.stopPropagation()">
+        <button class="mini-btn" onclick="togglePin('${n.id}')" title="ستاره">${n.pinned?'★':'☆'}</button>
+        <button class="mini-btn danger" onclick="deleteNote('${n.id}')" title="حذف">🗑</button>
+      </div>
+      <div class="note-head">
+        <div class="note-title">${esc(n.title) || '<span style="color:#9ca3af">بدون عنوان</span>'}</div>
+      </div>
+      ${preview ? `<div class="note-body">${esc(preview)}</div>` : '<div class="note-body" style="color:#9ca3af;font-style:italic">خالی</div>'}
+      <div class="note-foot">
+        <span class="cat-tag">${esc(n.cat)}</span>
+        <span>${formatDate(n.updated)}</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* =========================================================
+   ویرایشگر
+   ========================================================= */
+let editingId = null;
+
+function renderCatSelects(){
+  // پر کردن select دسته‌ها
+  const sel = el("nCat");
+  sel.innerHTML = categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+
+  // فیلتر بالا
+  const f = el("catFilter");
+  const cur = f.value;
+  f.innerHTML = '<option value="">همه دسته‌ها</option>' + categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  f.value = cur;
+}
+
+function newNote(){
+  editingId = null;
+  el("editorTitle").textContent = "یادداشت جدید";
+  el("nTitle").value = "";
+  el("nBody").value = "";
+  el("nCat").value = categories[0] || "عمومی";
+  el("nColor").value = "white";
+  el("nPinned").checked = false;
+  el("editorPanel").classList.add("open");
+  setTimeout(()=>el("nTitle").focus(), 200);
+}
+
+function openNote(id){
+  const n = notes.find(x=>x.id===id);
+  if(!n) return;
+  editingId = id;
+  el("editorTitle").textContent = "ویرایش یادداشت";
+  el("nTitle").value = n.title;
+  el("nBody").value = n.body;
+  el("nCat").value = n.cat;
+  el("nColor").value = n.color;
+  el("nPinned").checked = n.pinned;
+  el("editorPanel").classList.add("open");
+}
+
+function closeEditor(){
+  el("editorPanel").classList.remove("open");
+  editingId = null;
+}
+
+function saveNote(){
+  const title = el("nTitle").value.trim();
+  const body = el("nBody").value;
+  const cat = el("nCat").value;
+  const color = el("nColor").value;
+  const pinned = el("nPinned").checked;
+
+  if(!title && !body.trim()){
+    toast("یادداشت خالیه — یه چیزی بنویس");
+    return;
+  }
+
+  if(editingId){
+    const n = notes.find(x=>x.id===editingId);
+    if(n){
+      n.title = title; n.body = body; n.cat = cat;
+      n.color = color; n.pinned = pinned;
+      n.updated = Date.now();
+    }
+  }else{
+    notes.push({
+      id: uid(),
+      title: title || "بدون عنوان",
+      body, cat, color, pinned,
+      created: Date.now(), updated: Date.now()
+    });
+  }
+  if(saveAll()){
+    toast("✅ ذخیره شد");
+    closeEditor();
+    render();
+  }
+}
+
+function togglePin(id){
+  const n = notes.find(x=>x.id===id);
+  if(!n) return;
+  n.pinned = !n.pinned;
+  n.updated = Date.now();
+  saveAll();
+  render();
+}
+
+function deleteNote(id){
+  askConfirm("حذف یادداشت", "این یادداشت برای همیشه حذف شود؟", ()=>{
+    notes = notes.filter(n=>n.id!==id);
+    saveAll();
+    render();
+    toast("🗑 حذف شد");
+  });
+}
+
+/* =========================================================
+   تأیید
+   ========================================================= */
+let confirmCallback = null;
+function askConfirm(title, msg, cb){
+  el("confirmTitle").textContent = title;
+  el("confirmMsg").textContent = msg;
+  confirmCallback = cb;
+  el("confirmModal").classList.add("open");
+}
+function closeConfirm(){
+  el("confirmModal").classList.remove("open");
+  confirmCallback = null;
+}
+el("confirmOkBtn").onclick = ()=>{
+  const cb = confirmCallback;
+  closeConfirm();
+  if(cb) cb();
+};
+
+/* =========================================================
+   تنظیمات
+   ========================================================= */
+function openSettings(){
+  renderCatManager();
+  el("settingsModal").classList.add("open");
+}
+function closeSettings(){
+  el("settingsModal").classList.remove("open");
+}
+function renderCatManager(){
+  el("catManager").innerHTML = categories.map((c,i)=>`
+    <div class="cat-item">
+      <span>${esc(c)}</span>
+      ${categories.length > 1 ? `<button onclick="removeCategory(${i})" title="حذف">✕</button>` : ''}
+    </div>
+  `).join("");
+}
+function addCategory(){
+  const v = el("newCatInput").value.trim();
+  if(!v) return;
+  if(categories.includes(v)){ toast("این دسته قبلاً هست"); return; }
+  categories.push(v);
+  el("newCatInput").value = "";
+  saveAll();
+  renderCatManager();
+  renderCatSelects();
+  toast("✅ دسته اضافه شد");
+}
+function removeCategory(i){
+  const cat = categories[i];
+  const count = notes.filter(n=>n.cat===cat).length;
+  const msg = count
+    ? `${count} یادداشت در این دسته هست. به «عمومی» منتقل شوند؟`
+    : "این دسته حذف شود؟";
+  askConfirm("حذف دسته", msg, ()=>{
+    if(count){
+      notes.forEach(n=>{ if(n.cat===cat) n.cat = "عمومی"; });
+    }
+    categories.splice(i,1);
+    if(!categories.includes("عمومی")) categories.push("عمومی");
+    saveAll();
+    renderCatManager();
+    renderCatSelects();
+    render();
+    toast("🗑 دسته حذف شد");
+  });
+}
+
+/* =========================================================
+   نمایش
+   ========================================================= */
+function setView(v){
+  currentView = v;
+  el("viewList").classList.toggle("active", v === "list");
+  el("viewGrid").classList.toggle("active", v === "grid");
+  render();
+}
+
+/* =========================================================
+   پرینت
+   ========================================================= */
+function printNote(id){
+  const n = notes.find(x=>x.id===id);
+  if(!n) return;
+  const area = el("printArea");
+  area.innerHTML = `
+    <div class="print-note">
+      <h2>${esc(n.title)}</h2>
+      <div class="meta">دسته: ${esc(n.cat)} · آخرین ویرایش: ${formatDate(n.updated)}</div>
+      <div class="content">${esc(n.body)}</div>
+    </div>`;
+  window.print();
+}
+
+function printAll(){
+  const list = [...notes].sort((a,b)=>b.updated - a.updated);
+  if(!list.length){ toast("یادداشتی نیست"); return; }
+  const area = el("printArea");
+  area.innerHTML = list.map(n=>`
+    <div class="print-note">
+      <h2>${esc(n.title)}</h2>
+      <div class="meta">دسته: ${esc(n.cat)} · آخرین ویرایش: ${formatDate(n.updated)}</div>
+      <div class="content">${esc(n.body)}</div>
+    </div>`).join("");
+  window.print();
+}
+
+/* =========================================================
+   Excel / CSV
+   ========================================================= */
+function exportExcel(){
+  if(window.XLSX){
+    const wb = XLSX.utils.book_new();
+    const rows = notes.map(n=>({
+      "عنوان": n.title,
+      "متن": n.body,
+      "دسته": n.cat,
+      "ستاره‌دار": n.pinned ? "بله" : "خیر",
+      "رنگ": n.color,
+      "تاریخ ایجاد": new Date(n.created).toLocaleString('fa-IR'),
+      "آخرین ویرایش": new Date(n.updated).toLocaleString('fa-IR')
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "یادداشت‌ها");
+    XLSX.writeFile(wb, "یادداشت‌ها.xlsx");
+  }else{
+    // CSV fallback
+    const rows = [["عنوان","متن","دسته","ستاره‌دار","رنگ","تاریخ ایجاد","آخرین ویرایش"]];
+    notes.forEach(n=>rows.push([
+      n.title, n.body, n.cat, n.pinned ? "بله" : "خیر",
+      n.color,
+      new Date(n.created).toLocaleString('fa-IR'),
+      new Date(n.updated).toLocaleString('fa-IR')
+    ]));
+    const csv = '\ufeff' + rows.map(r=>r.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "یادداشت‌ها.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+}
+
+function importExcel(event){
+  const file = event.target.files[0]; if(!file) return;
+  if(!window.XLSX){ alert("کتابخانه اکسل بارگذاری نشده."); event.target.value=""; return; }
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const wb = XLSX.read(ev.target.result, {type:"array"});
+      const sh = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sh);
+      if(!rows.length){ alert("فایل خالیه."); return; }
+
+      const count = rows.filter(r=>r["عنوان"] || r["متن"]).length;
+      if(!count){ alert("ستون‌های «عنوان» و «متن» در فایل پیدا نشد."); return; }
+      if(!confirm(`${count} یادداشت پیدا شد. به یادداشت‌های فعلی اضافه شود؟`)) return;
+
+      rows.forEach(r=>{
+        const title = String(r["عنوان"]||"").trim();
+        const body = String(r["متن"]||"");
+        if(!title && !body) return;
+        const cat = String(r["دسته"]||"عمومی").trim() || "عمومی";
+        if(!categories.includes(cat)) categories.push(cat);
+        notes.push({
+          id: uid(),
+          title: title || "بدون عنوان",
+          body,
+          cat,
+          color: "white",
+          pinned: String(r["ستاره‌دار"]||"").trim() === "بله",
+          created: Date.now(),
+          updated: Date.now()
+        });
+      });
+      saveAll();
+      render();
+      renderCatSelects();
+      toast(`✅ ${count} یادداشت اضافه شد`);
+    }catch(e){
+      console.error(e);
+      alert("خطا در خواندن فایل.");
+    }
+    event.target.value = "";
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* =========================================================
+   JSON
+   ========================================================= */
+function exportJSON(){
+  const payload = { notes, categories, appVersion: APP_VERSION, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "پشتیبان_یادداشت‌ها.json"; a.click();
+  URL.revokeObjectURL(url);
+}
+function importJSON(event){
+  const file = event.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const d = JSON.parse(ev.target.result);
+      if(!d || !Array.isArray(d.notes)) throw new Error("invalid");
+      const mode = confirm("بله = جایگزینی کامل\nخیر = افزودن به یادداشت‌های فعلی");
+      if(mode){
+        notes = d.notes.map(n=>({
+          id: n.id || uid(),
+          title: String(n.title||""),
+          body: String(n.body||""),
+          cat: n.cat || "عمومی",
+          color: n.color || "white",
+          pinned: !!n.pinned,
+          created: n.created || Date.now(),
+          updated: n.updated || Date.now()
+        }));
+        if(Array.isArray(d.categories)) categories = d.categories;
+      }else{
+        d.notes.forEach(n=>{
+          const cat = n.cat || "عمومی";
+          if(!categories.includes(cat)) categories.push(cat);
+          notes.push({
+            id: uid(),
+            title: String(n.title||""),
+            body: String(n.body||""),
+            cat,
+            color: n.color || "white",
+            pinned: !!n.pinned,
+            created: n.created || Date.now(),
+            updated: n.updated || Date.now()
+          });
+        });
+        if(Array.isArray(d.categories)){
+          d.categories.forEach(c=>{ if(!categories.includes(c)) categories.push(c); });
+        }
+      }
+      saveAll();
+      renderCatSelects();
+      render();
+      toast("✅ بازیابی انجام شد");
+    }catch(e){
+      console.error(e);
+      alert("فایل پشتیبان معتبر نیست.");
+    }
+    event.target.value = "";
+  };
+  reader.readAsText(file);
+}
+
+/* =========================================================
+   Auto-save در ویرایشگر
+   ========================================================= */
+let autoSaveTimer = null;
+function scheduleAutoSave(){
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(()=>{
+    // فقط اگه یادداشت موجود باشه ذخیره کن (نه یادداشت جدید)
+    if(!editingId) return;
+    const n = notes.find(x=>x.id===editingId);
+    if(!n) return;
+    n.title = el("nTitle").value.trim() || "بدون عنوان";
+    n.body = el("nBody").value;
+    n.cat = el("nCat").value;
+    n.color = el("nColor").value;
+    n.pinned = el("nPinned").checked;
+    n.updated = Date.now();
+    saveAll();
+  }, 800);
+}
+["nTitle","nBody","nCat","nColor","nPinned"].forEach(id=>{
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const e = el(id);
+    if(e) e.addEventListener("input", scheduleAutoSave);
+    if(e) e.addEventListener("change", scheduleAutoSave);
+  });
+});
+
+/* بستن مودال با کلیک بیرون */
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click', e=>{
+    if(e.target === bg){
+      bg.classList.remove('open');
+    }
+  });
+});
+
+/* کلید Escape */
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){
+    if(el("editorPanel").classList.contains("open")) closeEditor();
+    else if(el("settingsModal").classList.contains("open")) closeSettings();
+    else if(el("confirmModal").classList.contains("open")) closeConfirm();
+  }
+  // Ctrl+S برای ذخیره
+  if((e.ctrlKey || e.metaKey) && e.key === 's'){
+    if(el("editorPanel").classList.contains("open")){
+      e.preventDefault();
+      saveNote();
+    }
+  }
+});
+
+/* =========================================================
+   راه‌اندازی
+   ========================================================= */
+el("versionLabel").textContent = "نسخه " + APP_VERSION;
+el("aboutVersion").textContent = "نسخه " + APP_VERSION;
+
+loadAll();
+renderCatSelects();
+render();
+
+setTimeout(()=>{
+  const s = el("pwaStatus");
+  if(!s) return;
+  const isHttps = location.protocol === "https:" || location.hostname === "localhost";
+  const hasSW = "serviceWorker" in navigator;
+  if(!isHttps){
+    s.textContent = "⚠️ file:// — نصب کار نمی‌کند";
+    s.className = "pwa-status err";
+  }else if(!hasSW){
+    s.textContent = "⚠️ SW پشتیبانی نمی‌شود";
+    s.className = "pwa-status warn";
+  }else if(window.matchMedia("(display-mode: standalone)").matches){
+    s.textContent = "✅ نصب‌شده";
+    s.className = "pwa-status";
+  }else if(deferredPrompt){
+    s.textContent = "✅ آماده‌ی نصب";
+    s.className = "pwa-status";
+  }else{
+    s.textContent = "⏳ در انتظار نصب...";
+    s.className = "pwa-status warn";
+  }
+}, 1500);
+</script>
+</body>
+  </html>
